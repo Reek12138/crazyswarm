@@ -22,9 +22,9 @@ class FlightState(Enum):
     FORMATION_FLIGHT = 2
     LANDING = 3
 
-class FORMATION(Enum):
-    LINE = 1
-    TRIANGLE = 2
+# class FORMATION(Enum):
+#     LINE = 1
+#     TRIANGLE = 2
 
 def take_off():
     Z = 1.5
@@ -60,24 +60,61 @@ def calculate_follower_positions(leader_pos, formation_type):
         raise ValueError("Unknown formation type")
     return follower1_pos, follower2_pos
 
-def flight_formation(leader_cf, follower1_cf, follower2_cf, leader_path, formation_type):
-    """根据给定的队形和路径执行飞行"""
+
+def control_drone(cf, path, formation_pos, formation_type):
     global interrupt_trajectory
-    for pos in leader_path:
+    for pos in path:
         if interrupt_trajectory:
-            print("中断飞行....")
-            return True
-        leader_pos = np.array(pos)
-        f1_pos, f2_pos = calculate_follower_positions(leader_pos, formation_type)
-        
-        # 发送位置命令
-        leader_cf.cmdPosition(leader_pos, 0)
-        follower1_cf.cmdPosition(f1_pos, 0)
-        follower2_cf.cmdPosition(f2_pos, 0)
-        
-        # 等待一定时间以保持队形移动
+            print(f"中断无人机 {cf.id} 的飞行....")
+            cf.land(targetHeight=-0.05, duration=2)  # 确保在中断时无人机能够降落
+            return
+        target_pos = np.array(pos) + np.array(formation_pos)
+
+        cf.cmdPosition(target_pos.tolist(), 0)
         timeHelper.sleepForRate(1.0)
+
+def flight_formation(leader_cf, follower1_cf, follower2_cf, leader_path, formation_type):
+    threads = []
+    # 计算跟随无人机相对于领航无人机的位置
+    leader_pos = np.array([0, 0, 0])  # 假定领航无人机的初始位置
+    f1_pos, f2_pos = calculate_follower_positions(leader_pos, formation_type)
+
+    # 为领航无人机创建线程
+    thread_leader = threading.Thread(target=control_drone, args=(leader_cf, leader_path, [0, 0, 0], formation_type))
+    threads.append(thread_leader)
+
+    # 为跟随无人机创建线程
+    thread_follower1 = threading.Thread(target=control_drone, args=(follower1_cf, leader_path, f1_pos, formation_type))
+    thread_follower2 = threading.Thread(target=control_drone, args=(follower2_cf, leader_path, f2_pos, formation_type))
+    threads.append(thread_follower1)
+    threads.append(thread_follower2)
+
+    # 启动所有线程
+    for thread in threads:
+        thread.start()
+
+    # 等待所有线程完成
+    for thread in threads:
+        thread.join()
     return False
+# def flight_formation(leader_cf, follower1_cf, follower2_cf, leader_path, formation_type):
+#     """根据给定的队形和路径执行飞行"""
+#     global interrupt_trajectory
+#     for pos in leader_path:
+#         if interrupt_trajectory:
+#             print("中断飞行....")
+#             return True
+#         leader_pos = np.array(pos)
+#         f1_pos, f2_pos = calculate_follower_positions(leader_pos, formation_type)
+        
+#         # 发送位置命令
+#         leader_cf.cmdPosition(leader_pos, 0)
+#         follower1_cf.cmdPosition(f1_pos, 0)
+#         follower2_cf.cmdPosition(f2_pos, 0)
+        
+#         # 等待一定时间以保持队形移动
+#         timeHelper.sleepForRate(1.0)
+#     return False
     
 def check_for_interrupt():
     global interrupt_trajectory
@@ -100,6 +137,9 @@ def main():
     else:
         print("无效的输入,退出程序")
         return
+
+    interrupt_thread = threading.Thread(target=check_for_interrupt)
+    interrupt_thread.start()
 
     leader_path = read_leader_pose("leader.txt")
 
@@ -126,6 +166,9 @@ def main():
             land()
             print("飞行任务完成，所有无人机降落")
             break
+    
+    interrupt_thread.join()
+
 
 if __name__ == "__main__":
     main()
