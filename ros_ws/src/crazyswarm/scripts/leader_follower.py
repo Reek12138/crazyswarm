@@ -6,7 +6,8 @@ import numpy as np
 TAKEOFF_DURATION = 2.5
 HOVER_DURATION = 5.0
 # 队形参数
-FORMATION_DISTANCE = 0.5  # 跟随者与领航者的水平距离
+FORMATION_DISTANCE = 0.65  # 跟随者与领航者的水平距离
+FORMATION_DISTANCE2 = 0.15  # 跟随者与领航者的水平距离
 FORMATION_TYPE = None  # 队形类型，由用户输入决定
 
 swarm = Crazyswarm()
@@ -39,7 +40,7 @@ def land():
     allcfs.stop()
 
 def read_leader_pose(filename):
-    with open("./leader_path"+filename,'r') as file:
+    with open("./leader_path/"+filename,'r') as file:
         path = []
         for line in file:
             x,y,z = map(float,line.strip().split())
@@ -50,16 +51,19 @@ def calculate_follower_positions(leader_pos, formation_type):
     """根据队形类型计算跟随者的位置"""
     if formation_type == "line":
         # 一字型队形
-        follower1_pos = (leader_pos[0], leader_pos[1] - FORMATION_DISTANCE, leader_pos[2])
-        follower2_pos = (leader_pos[0], leader_pos[1] + FORMATION_DISTANCE, leader_pos[2])
+        follower1_pos = (leader_pos[0], leader_pos[1] + FORMATION_DISTANCE, leader_pos[2]+FORMATION_DISTANCE2)
+        follower2_pos = (leader_pos[0], leader_pos[1] - FORMATION_DISTANCE, leader_pos[2]+FORMATION_DISTANCE2)
+        # follower1_pos = (0, -FORMATION_DISTANCE, 0)
+        # follower2_pos = (0, +FORMATION_DISTANCE, 0)
     elif formation_type == "triangle":
         # 三角型队形
         follower1_pos = (leader_pos[0] - FORMATION_DISTANCE, leader_pos[1] - FORMATION_DISTANCE, leader_pos[2])
         follower2_pos = (leader_pos[0] - FORMATION_DISTANCE, leader_pos[1] + FORMATION_DISTANCE, leader_pos[2])
+        # follower1_pos = ( - FORMATION_DISTANCE,  - FORMATION_DISTANCE, 0)
+        # follower2_pos = ( - FORMATION_DISTANCE,  + FORMATION_DISTANCE, 0)
     else:
         raise ValueError("Unknown formation type")
     return follower1_pos, follower2_pos
-
 
 def control_drone(cf, path, formation_pos, formation_type):
     global interrupt_trajectory
@@ -69,23 +73,72 @@ def control_drone(cf, path, formation_pos, formation_type):
             cf.land(targetHeight=-0.05, duration=2)  # 确保在中断时无人机能够降落
             return
         target_pos = np.array(pos) + np.array(formation_pos)
+        # target_pos = np.array(formation_pos)
 
         cf.cmdPosition(target_pos.tolist(), 0)
-        timeHelper.sleepForRate(1.0)
+
+        # test_pos = np.array([cf.position()[0], cf.position()[1], cf.position()[2]])
+        # print(test_pos)
+
+        timeHelper.sleepForRate(18)
+def control_drone2(cf, path, formation_pos, formation_type):
+    global interrupt_trajectory
+    global f1_pos
+    for pos in path:
+        if interrupt_trajectory:
+            print(f"中断无人机 {cf.id} 的飞行....")
+            cf.land(targetHeight=-0.05, duration=2)  # 确保在中断时无人机能够降落
+            return
+        # target_pos = np.array(pos) + np.array(formation_pos)
+        target_pos = np.array(f1_pos)
+
+        cf.cmdPosition(target_pos.tolist(), 0)
+        timeHelper.sleepForRate(18)
+def control_drone3(cf, path, formation_pos, formation_type):
+    global interrupt_trajectory
+    global f2_pos
+    for pos in path:
+        if interrupt_trajectory:
+            print(f"中断无人机 {cf.id} 的飞行....")
+            cf.land(targetHeight=-0.05, duration=2)  # 确保在中断时无人机能够降落
+            return
+        # target_pos = np.array(pos) + np.array(formation_pos)
+        target_pos = np.array(f2_pos)
+
+        cf.cmdPosition(target_pos.tolist(), 0)
+        timeHelper.sleepForRate(18)
+def read_pos(leader_cf, follower_type):
+    global f1_pos,f2_pos
+
+    while(1):
+        leader_pos = np.array([leader_cf.position()[0], leader_cf.position()[1], leader_cf.position()[2]])
+        f1_pos, f2_pos = calculate_follower_positions(leader_pos, follower_type)
+        # print(leader_pos)
+
+def read_pos2(leader_cf, follower_type):
+    global f1_pos,f2_pos
+    leader_pos = np.array([leader_cf.position()[0], leader_cf.position()[1], leader_cf.position()[2]])
+    f1_pos, f2_pos = calculate_follower_positions(leader_pos, follower_type)
 
 def flight_formation(leader_cf, follower1_cf, follower2_cf, leader_path, formation_type):
+    global f1_pos, f2_pos
+    
     threads = []
     # 计算跟随无人机相对于领航无人机的位置
-    leader_pos = np.array([0, 0, 0])  # 假定领航无人机的初始位置
-    f1_pos, f2_pos = calculate_follower_positions(leader_pos, formation_type)
-
+    # leader_pos = np.array([0, 0, 0])  # 假定领航无人机的初始位置
+    # leader_pos = np.array([leader_cf.position()[0], leader_cf.position()[1], leader_cf.position()[2]])
+    
+    # f1_pos, f2_pos = calculate_follower_positions(leader_pos, formation_type)
+    read_pos2(leader_cf, formation_type)
     # 为领航无人机创建线程
     thread_leader = threading.Thread(target=control_drone, args=(leader_cf, leader_path, [0, 0, 0], formation_type))
     threads.append(thread_leader)
 
     # 为跟随无人机创建线程
-    thread_follower1 = threading.Thread(target=control_drone, args=(follower1_cf, leader_path, f1_pos, formation_type))
-    thread_follower2 = threading.Thread(target=control_drone, args=(follower2_cf, leader_path, f2_pos, formation_type))
+    pos = threading.Thread(target = read_pos, args=(leader_cf, formation_type))
+    threads.append(pos)
+    thread_follower1 = threading.Thread(target=control_drone2, args=(follower1_cf, leader_path, f1_pos, formation_type))
+    thread_follower2 = threading.Thread(target=control_drone3, args=(follower2_cf, leader_path, f2_pos, formation_type))
     threads.append(thread_follower1)
     threads.append(thread_follower2)
 
@@ -96,7 +149,10 @@ def flight_formation(leader_cf, follower1_cf, follower2_cf, leader_path, formati
     # 等待所有线程完成
     for thread in threads:
         thread.join()
+
+    
     return False
+    
 # def flight_formation(leader_cf, follower1_cf, follower2_cf, leader_path, formation_type):
 #     """根据给定的队形和路径执行飞行"""
 #     global interrupt_trajectory
@@ -146,12 +202,19 @@ def main():
     leader_cf = cfs[0]
     follower1_cf = cfs[1]
     follower2_cf = cfs[2]
+    cfs_follower = [cfs[1], cfs[2]]
+
 
     # 状态机
     current_state = FlightState.IDLE
     while True:
         if current_state ==FlightState.IDLE:
             take_off()
+            xy_radius = 0.125
+            radii = 1.0 * xy_radius * np.array([1.0, 1.0, 3.0])
+            for i, cf in enumerate(cfs_follower):
+                others = cfs[:i] + cfs[(i+1):]
+                cf.enableCollisionAvoidance(others, radii)
             current_state = FlightState.TAKEOFF
 
         elif current_state == FlightState.TAKEOFF:
