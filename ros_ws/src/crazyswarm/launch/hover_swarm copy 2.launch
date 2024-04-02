@@ -18,7 +18,7 @@
           enHighLevel: 1
         stabilizer:
           estimator: 2 # 1: complementary, 2: kalman
-          controller: 1 # 1: PID, 2: mellinger
+          controller: 2 # 1: PID, 2: mellinger
         ring:
           effect: 16 # 6: double spinner, 7: solid color, 16: packetRate
           solidBlue: 255 # if set to solid color
@@ -32,16 +32,16 @@
           resetEstimation: 1
       # tracking
       motion_capture_type: "optitrack" # one of none,vicon,optitrack,optitrack_closed_source,qualisys,vrpn
-      object_tracking_type: "libobjecttracker" # one of motionCapture,libobjecttracker
+      object_tracking_type: "motionCapture" # one of motionCapture,libobjecttracker
       send_position_only: False # set to False to send position+orientation; set to True to send position only
-      motion_capture_host_name: "192.168.66.131"
+      motion_capture_host_name: "192.168.31.131"
       # motion_capture_interface_ip: "" # optional for optitrack with multiple interfaces
       save_point_clouds: "/dev/null" # set to a valid path to log mocap point cloud binary file.
       print_latency: False
       write_csvs: False
       force_no_cache: False
       enable_parameters: True
-      enable_logging: True
+      enable_logging: False
       enable_logging_pose: True
     </rosparam>
   </node>
@@ -56,7 +56,7 @@
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find crazyswarm)/launch/test.rviz"/>
-  <node pkg ="rosbag" type="record" name="record_run" args="-a" />
+
   <!-- <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot_x" args="/cf2/log1/values[0]"/> -->
   <!-- <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot_roll" args="/cf1/log1/values[2] /cf1/log1/values[3]"/> -->
 

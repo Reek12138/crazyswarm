@@ -1,0 +1,26 @@
+#第二组飞机 ID 2 10 11 14 16 17
+crazyflies:
+  - id: 2
+    channel: 80
+    initialPosition: [0.75, -0.75, 0.0]
+    type: default
+  - id: 10
+    channel: 80
+    initialPosition: [0.75, -1.25, 0.0]
+    type: default
+  - id: 11
+    channel: 80
+    initialPosition: [0.75, -1.75, 0.0]
+    type: default
+  - id: 14
+    channel: 100
+    initialPosition: [1.75, -0.75, 0.0]
+    type: default
+  - id: 16
+    channel: 100
+    initialPosition: [1.75, -1.25, 0.0]
+    type: default
+  - id: 17
+    channel: 100
+    initialPosition: [1.75, -1.75, 0.0]
+    type: default

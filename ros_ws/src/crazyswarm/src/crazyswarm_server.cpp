@@ -807,7 +807,7 @@ public:
     , m_pMarkers(pMarkers)
     , m_pMocapRigidBodies(pMocapRigidBodies)
     , m_slowQueue()
-    , m_cfbc("radio://" + std::to_string(radio) + "/" + std::to_string(channel) + "/2M/FFE7E7E7E7")
+    , m_cfbc("radio://" + std::to_string(radio) + "/" + std::to_string(channel) + "/1M/FFE7E7E7E7")
     , m_isEmergency(false)
     , m_useMotionCaptureObjectTracking(useMotionCaptureObjectTracking)
     , m_br()
@@ -1169,7 +1169,7 @@ private:
         sstr << std::setfill ('0') << std::setw(2) << std::hex << id;
         std::string idHex = sstr.str();
 
-        std::string uri = "radio://" + std::to_string(m_radio) + "/" + std::to_string(channel) + "/2M/E7E7E7E7" + idHex;
+        std::string uri = "radio://" + std::to_string(m_radio) + "/" + std::to_string(channel) + "/1M/E7E7E7E7" + idHex;
         std::string tf_prefix = "cf" + std::to_string(id);
         std::string frame = "cf" + std::to_string(id);
         cfConfigs.push_back({uri, tf_prefix, frame, id, type});

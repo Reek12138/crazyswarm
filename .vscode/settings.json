@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "vrpn_5DT16.C": "cpp",
+        "vrpn_Tracker_ButtonFly.C": "cpp"
+    },
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ]
+}
