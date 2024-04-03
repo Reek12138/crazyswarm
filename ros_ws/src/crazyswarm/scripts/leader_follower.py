@@ -210,11 +210,13 @@ def main():
     while True:
         if current_state ==FlightState.IDLE:
             take_off()
+            # 开启避碰
             xy_radius = 0.125
             radii = 1.0 * xy_radius * np.array([1.0, 1.0, 3.0])
             for i, cf in enumerate(cfs_follower):
                 others = cfs[:i] + cfs[(i+1):]
                 cf.enableCollisionAvoidance(others, radii)
+                
             current_state = FlightState.TAKEOFF
 
         elif current_state == FlightState.TAKEOFF:
