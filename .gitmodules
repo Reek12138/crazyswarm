@@ -12,5 +12,4 @@
 	path = ros_ws/src/crazyflie_tools
 	url = https://github.com/whoenig/crazyflie_tools.git
 
-.vscode/
 

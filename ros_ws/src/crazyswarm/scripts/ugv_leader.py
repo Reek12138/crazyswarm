@@ -45,7 +45,7 @@ class ugv_tracker:
         
         self.threadcfs = []
         
-    def check_for_interrupt():
+    def check_for_interrupt(self):
         global interrupt_trajectory
         while True:
             userInput = input("输入 '0' 中断飞行: ")
@@ -84,11 +84,11 @@ class ugv_tracker:
             self.relative_distance_isupdate = True
 
     def drone_control(self, cf, ugv_pos, z, i):
-        # global interrupt_trajectory
-        # if interrupt_trajectory:
-        #     print(f"中断无人机{cf.id}的飞行...")
-        #     cf.land(targetHeight=-0.5, duration=2)
-        #     return
+        global interrupt_trajectory
+        if interrupt_trajectory:
+            print(f"中断无人机{cf.id}的飞行...")
+            cf.land(targetHeight=-0.5, duration=2)
+            return
         
         target_x = ugv_pos["position"][0] + i*FORMATION_DIS
         target_y = ugv_pos["position"][1] + i*FORMATION_DIS
@@ -108,6 +108,7 @@ class ugv_tracker:
         global interrupt_trajectory
 
         if self.state == State.INIT:
+            print(self.ugv_msg)
             if self.ugv_msg["position"][0] is not None:
                 print(
                         '车辆当前坐标为：\n x:{:.3f},y:,{:.3f},z:{:.3f}'.format(
@@ -144,10 +145,12 @@ class ugv_tracker:
         
         if self.state == State.FOLLOW:
             
-            for cf,i in enumerate (self.cfs):
+            for i,cf in enumerate (self.cfs):
                 thread = threading.Thread(target=self.drone_control, args=(cf, self.ugv_msg, HEIGHT_Z, i))
                 self.threadcfs.append(thread)
-                self.thread_start()
+                check_land = threading.Thread(target=self.check_for_interrupt)
+                self.threadcfs.append(check_land)
+                # self.thread_start()
             
         if interrupt_trajectory == True:
             self.state = State.LAND
@@ -167,10 +170,15 @@ if __name__ == "__main__":
     ugv_track = threading.Thread(target=tracking.ugv_msg_get, args=(tracking.ugv_tkr, True))
     ugv_track.start()
 
-    tracking.main()
+    for thread in tracking.threadcfs:
+        thread.start()
 
-    check_land = threading.Thread(target=ugv_tracker.check_for_interrupt)
-    check_land.start()
+    
+
+    # check_land = threading.Thread(target=ugv_tracker.check_for_interrupt)
+    # check_land.start()
+
+    tracking.main()
 
     
 
